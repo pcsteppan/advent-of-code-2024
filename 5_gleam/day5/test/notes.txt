@@ -61,5 +61,3 @@
 There is a contradiction / cycle in the rules.
 This indicates that the candidate lists need to act as a filter on the ruleset,
 in order for the rules to not contain contradictions.
-
-.. ok.. why

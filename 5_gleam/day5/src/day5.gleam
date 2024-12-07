@@ -18,13 +18,11 @@ pub type Problem {
   Problem(rules: Rules, candidates: Candidates)
 }
 
-// return conut of valid candidates
+// return count of valid candidates
 pub fn solve(problem: Problem) -> Int {
   let middle_numbers_of_valid_candidates =
     list.filter(problem.candidates, fn(candidate) {
-      let is_valid = solve_candidate(candidate, problem.rules)
-
-      is_valid
+      solve_candidate(candidate, problem.rules)
     })
     |> list.map(get_middle_element)
 
@@ -66,22 +64,15 @@ pub fn ordering(rules: Rules) -> List(Int) {
       list.fold(value, set, fn(set, num) { set.insert(set, num) })
     })
 
-  set.insert(full_set, 0)
-
   let ordering: List(Int) =
     dict.to_list(rules)
-    |> list.sort(fn(a, b) {
-      case list.length(a.1) - list.length(b.1) {
-        n if n < 0 -> order.Lt
-        n if n == 0 -> order.Eq
-        n if n > 0 -> order.Gt
-        _ -> order.Eq
-      }
-    })
+    |> list.sort(fn(a, b) { int.compare(list.length(a.1), list.length(b.1)) })
     |> list.map(fn(kvp) { kvp.0 })
 
-  let t_set = set.from_list(ordering)
-  let diff = set.difference(full_set, t_set)
+  // elements that don't have their own key in the rules
+  // go first, since they have 0 elements they must come after
+  let rules_with_no_entries = set.from_list(ordering)
+  let diff = set.difference(full_set, rules_with_no_entries)
 
   let diff_list = set.to_list(diff)
 

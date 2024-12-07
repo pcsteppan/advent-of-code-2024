@@ -92,7 +92,7 @@ pub fn part1_sample_test() {
   day5.parse(input)
   |> result.try(fn(problem) {
     let result = day5.solve(problem)
-    io.debug("result p1 sample:")
+    io.println("result p1 sample:")
     io.debug(result)
     Ok(result)
   })
@@ -106,7 +106,7 @@ pub fn ordering_test() {
     |> result.unwrap(day5.Problem(dict.new(), []))
 
   let _ordering = day5.ordering(problem.rules)
-  // io.debug("ordering")
+  // io.println("ordering")
   // io.debug(ordering)
 }
 
@@ -121,12 +121,12 @@ pub fn part1_test() {
   case solution {
     Ok(problem) -> {
       let result = day5.solve(problem)
-      io.debug("result p1:")
+      io.println("result p1:")
       io.debug(result)
       result
     }
     Error(e) -> {
-      io.debug("error")
+      io.println("error")
       io.debug(e)
       0
     }
@@ -197,12 +197,12 @@ pub fn part2_sample_test() {
   case solution {
     Ok(problem) -> {
       let result = day5.solve_part2(problem)
-      io.debug("result p2 sample:")
+      io.println("result p2 sample:")
       io.debug(result)
       result
     }
     Error(e) -> {
-      io.debug("error")
+      io.println("error")
       io.debug(e)
       0
     }
@@ -222,12 +222,12 @@ pub fn part2_test() {
   case solution {
     Ok(problem) -> {
       let result = day5.solve_part2(problem)
-      io.debug("result p2:")
+      io.println("result p2:")
       io.debug(result)
       result
     }
     Error(e) -> {
-      io.debug("error")
+      io.println("error")
       io.debug(e)
       0
     }
