@@ -1,6 +1,8 @@
 import day5
 import gleam/dict
+import gleam/int
 import gleam/io
+import gleam/list
 import gleam/result
 import gleam/string
 import gleeunit
@@ -8,13 +10,11 @@ import gleeunit/should
 import simplifile
 
 pub fn main() {
-  gleeunit.main()
-}
-
-// gleeunit test functions end in `_test`
-pub fn hello_world_test() {
-  1
-  |> should.equal(1)
+  // part2_sample_test()
+  part2_test()
+  // reorder_2_test()
+  // filter_rules_test()
+  // gleeunit.main()
 }
 
 pub fn parse_test() {
@@ -50,7 +50,14 @@ pub fn solve_test() {
   |> should.equal(3)
 }
 
-fn sample() {
+fn real() -> String {
+  let filepath = "test/data.txt"
+  simplifile.read(filepath)
+  |> result.unwrap("")
+  |> string.trim
+}
+
+fn sample() -> String {
   "47|53
 97|13
 97|61
@@ -138,6 +145,81 @@ pub fn reorder_test() {
   reordered |> should.equal([1, 2, 3, 5])
 }
 
+pub fn filter_rules_test() {
+  let input = real()
+  let problem =
+    day5.parse(input)
+    |> result.unwrap(day5.Problem(dict.new(), []))
+
+  let real_candidate = [
+    28, 91, 55, 75, 81, 23, 58, 33, 59, 36, 29, 62, 83, 98, 65, 11, 63, 94, 49,
+    34, 26, 15, 69,
+  ]
+  // let valid_check = day5.solve_candidate(real_candidate, problem.rules)
+  // valid_check |> should.equal(True)
+
+  let filtered_rules =
+    day5.filter_rules_by_candidate(problem.rules, real_candidate)
+    |> dict.to_list
+    |> list.sort(fn(a, b) {
+      let #(_k, v) = a
+      let #(_k2, v2) = b
+      int.compare(list.length(v), list.length(v2))
+    })
+    |> list.map(io.debug(_))
+}
+
+pub fn reorder_2_test() {
+  let input = real()
+  let problem =
+    day5.parse(input)
+    |> result.unwrap(day5.Problem(dict.new(), []))
+
+  let valid_candidate = [14, 97, 99]
+  let valid_check = day5.solve_candidate(valid_candidate, problem.rules)
+  valid_check |> should.equal(True)
+
+  let filtered_rules =
+    day5.filter_rules_by_candidate(problem.rules, valid_candidate)
+
+  let ordered_rules =
+    filtered_rules
+    |> dict.to_list
+    |> list.sort(fn(a, b) {
+      let #(k, _v) = a
+      let #(k2, _v2) = b
+      int.compare(k, k2)
+    })
+    |> list.map(fn(a) {
+      let #(k, v) = a
+      #(k, list.sort(v, int.compare))
+    })
+
+  ordered_rules |> list.map(io.debug(_))
+  // io.debug(ordered_rules)
+}
+
+pub fn part2_sample_test() {
+  let input = sample()
+
+  // 11618 too high
+
+  let solution = day5.parse(input)
+  case solution {
+    Ok(problem) -> {
+      let result = day5.solve_part2(problem)
+      io.debug("result p2:")
+      io.debug(result)
+      result
+    }
+    Error(e) -> {
+      io.debug("error")
+      io.debug(e)
+      0
+    }
+  }
+}
+
 pub fn part2_test() {
   let filepath = "test/data.txt"
   let data =
@@ -149,6 +231,7 @@ pub fn part2_test() {
   // sample()
 
   // 11618 too high
+  // 6343 too high
 
   let solution = day5.parse(input)
   case solution {

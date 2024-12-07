@@ -7,6 +7,7 @@ import gleam/order
 import gleam/result
 import gleam/set
 import gleam/string
+import gleeunit/should
 
 pub fn main() {
   io.println("Hello from day5!")
@@ -27,8 +28,8 @@ pub fn solve(problem: Problem) -> Int {
   let middle_numbers_of_valid_candidates =
     list.filter(problem.candidates, fn(candidate) {
       let is_valid = solve_candidate(candidate, problem.rules)
-      io.debug("is valid problem?")
-      io.debug(is_valid)
+      // io.debug("is valid problem?")
+      // io.debug(is_valid)
       is_valid
     })
     |> list.map(get_middle_element)
@@ -37,34 +38,34 @@ pub fn solve(problem: Problem) -> Int {
 }
 
 pub fn solve_part2(problem: Problem) -> Int {
-  let ordering = ordering(problem.rules)
-  io.debug("ordering")
-  io.debug(ordering)
-  let sum =
-    list.map(problem.candidates, fn(candidate) {
-      case solve_candidate(candidate, problem.rules) {
-        True -> candidate
-        False -> reorder(candidate, ordering)
-      }
+  let invalid_candidates =
+    list.filter(problem.candidates, fn(candidate) {
+      !solve_candidate(candidate, problem.rules)
     })
-    |> list.map(get_middle_element)
-    |> io.debug
-    |> list.fold(0, int.add)
 
-  io.debug("sum")
-  io.debug(sum)
-  // io.debug("reordered_candidates")
-  // io.debug(reordered_candidates)
+  let reordered_candidates =
+    list.map(invalid_candidates, fn(candidate) {
+      let rules = filter_rules_by_candidate(problem.rules, candidate)
+      let ordering = ordering(rules)
+      reorder(candidate, ordering)
+    })
 
-  // let total_sum = solve(Problem(problem.rules, reordered_candidates))
-  // io.debug("total sum")
-  // io.debug(total_sum)
+  // verify each are now considered 'valid'
+  let verified_candidates =
+    list.filter(reordered_candidates, fn(candidate) {
+      solve_candidate(candidate, problem.rules)
+    })
 
-  sum
+  list.length(verified_candidates)
+  |> should.equal(list.length(reordered_candidates))
+
+  reordered_candidates
+  |> list.map(get_middle_element)
+  |> list.fold(0, int.add)
 }
 
 pub fn ordering(rules: Rules) -> List(Int) {
-  io.debug(dict.to_list(rules))
+  // io.debug(dict.to_list(rules))
 
   let full_set =
     dict.to_list(rules)
@@ -110,12 +111,12 @@ fn get_middle_element(list: List(Int)) -> Int {
   middle_element
 }
 
-fn solve_candidate(candidate: List(Int), rules: Rules) -> Bool {
+pub fn solve_candidate(candidate: List(Int), rules: Rules) -> Bool {
   case candidate {
     [] | [_] -> True
     [head, ..tail] -> {
       let must_come_afters = dict.get(rules, head) |> result.unwrap([])
-      io.debug(must_come_afters)
+      // io.debug(must_come_afters)
       case intersects(must_come_afters, tail) {
         True -> False
         False -> solve_candidate(tail, rules)
@@ -124,15 +125,25 @@ fn solve_candidate(candidate: List(Int), rules: Rules) -> Bool {
   }
 }
 
+pub fn filter_rules_by_candidate(rules: Rules, candidate: List(Int)) -> Rules {
+  // filter out bad candidates and remap
+  dict.filter(rules, fn(k: Int, _) { list.contains(candidate, k) })
+  |> dict.map_values(fn(_, v: List(Int)) { get_intersection(v, candidate) })
+}
+
+fn get_intersection(list1: List(Int), list2: List(Int)) -> List(Int) {
+  list.filter(list1, fn(num) { list.contains(list2, num) })
+}
+
 fn intersects(list1: List(Int), list2: List(Int)) -> Bool {
-  io.debug("intersects")
-  io.debug(list1)
-  io.debug(list2)
-  io.debug("---")
+  // io.debug("intersects")
+  // io.debug(list1)
+  // io.debug(list2)
+  // io.debug("---")
   case list1 {
     [] -> False
     list -> {
-      list.filter(list1, fn(num) { list.contains(list2, num) })
+      get_intersection(list, list2)
       |> list.length
       > 0
     }
