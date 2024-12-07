@@ -1,6 +1,5 @@
 import gleam/dict
 import gleam/int
-import gleam/io
 import gleam/list
 import gleam/option
 import gleam/order
@@ -8,10 +7,6 @@ import gleam/result
 import gleam/set
 import gleam/string
 import gleeunit/should
-
-pub fn main() {
-  io.println("Hello from day5!")
-}
 
 pub type Rules =
   dict.Dict(Int, List(Int))
@@ -28,8 +23,7 @@ pub fn solve(problem: Problem) -> Int {
   let middle_numbers_of_valid_candidates =
     list.filter(problem.candidates, fn(candidate) {
       let is_valid = solve_candidate(candidate, problem.rules)
-      // io.debug("is valid problem?")
-      // io.debug(is_valid)
+
       is_valid
     })
     |> list.map(get_middle_element)
@@ -65,8 +59,6 @@ pub fn solve_part2(problem: Problem) -> Int {
 }
 
 pub fn ordering(rules: Rules) -> List(Int) {
-  // io.debug(dict.to_list(rules))
-
   let full_set =
     dict.to_list(rules)
     |> list.fold(set.new(), fn(set, kvp) {
@@ -116,7 +108,7 @@ pub fn solve_candidate(candidate: List(Int), rules: Rules) -> Bool {
     [] | [_] -> True
     [head, ..tail] -> {
       let must_come_afters = dict.get(rules, head) |> result.unwrap([])
-      // io.debug(must_come_afters)
+
       case intersects(must_come_afters, tail) {
         True -> False
         False -> solve_candidate(tail, rules)
@@ -136,10 +128,6 @@ fn get_intersection(list1: List(Int), list2: List(Int)) -> List(Int) {
 }
 
 fn intersects(list1: List(Int), list2: List(Int)) -> Bool {
-  // io.debug("intersects")
-  // io.debug(list1)
-  // io.debug(list2)
-  // io.debug("---")
   case list1 {
     [] -> False
     list -> {
@@ -154,8 +142,6 @@ pub fn parse(input: String) -> Result(Problem, String) {
   let cleaned_input = input |> string.trim
   case string.split_once(cleaned_input, "\n\n") {
     Ok(#(rules, candidates)) -> {
-      // io.debug(rules)
-      // io.debug(candidates)
       let rules = parse_rules(rules)
       let candidates = parse_candidates(candidates)
       case rules {
@@ -181,21 +167,17 @@ fn parse_rules(input: String) -> Result(Rules, String) {
   let data: List(#(Int, Int)) =
     string.split(input, "\n")
     |> list.map(fn(line) {
-      // io.debug(line)
       string.split_once(line, "|")
       |> result.unwrap(#("0", "0"))
       |> fn(tuple) {
         let #(key, value) = tuple
-        // io.debug(key)
-        // io.debug(value)
+
         let key = key |> string.trim |> int.parse |> result.unwrap(0)
         let value = value |> string.trim |> int.parse |> result.unwrap(0)
 
         #(value, key)
       }
     })
-
-  // io.debug(data)
 
   let rules: Rules =
     list.fold(data, dict.new(), fn(dict, kvp) {
@@ -207,8 +189,6 @@ fn parse_rules(input: String) -> Result(Rules, String) {
         }
       })
     })
-
-  // io.debug(rules)
 
   Ok(rules)
 }
