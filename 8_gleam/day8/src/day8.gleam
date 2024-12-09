@@ -91,8 +91,9 @@ fn vec2_negate(a: Vec2) -> Vec2 {
   #(-a.0, -a.1)
 }
 
-/// Different than find_antinodes, this function adds all antinodes in a regularly repeating linear fashion
-/// We only add 50 in each directions, since that is appropriate for the input size we're dealing with
+/// Finds all antinodes in a regularly repeating linear fashion
+/// Includes the position of the antenna itself (since part 2 involves that modification)
+/// 
 pub fn find_antinodes(a: Vec2, b: Vec2, repeat: Int) -> List(Vec2) {
   let difference = vec2_diff(a, b)
   let negative_difference = vec2_negate(difference)
