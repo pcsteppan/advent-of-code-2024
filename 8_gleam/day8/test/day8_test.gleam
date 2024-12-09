@@ -1,0 +1,33 @@
+import gleam/list
+import gleam/io
+import gleeunit
+import gleeunit/should
+import day8
+
+pub fn main() {
+  gleeunit.main()
+}
+
+fn sample()
+{
+"............
+........0...
+.....0......
+.......0....
+....0.......
+......A.....
+............
+............
+........A...
+.........A..
+............
+............"
+}
+
+pub fn parse_sample_test() {
+  let input = sample()
+  let parse = day8.parse_antennas(input)
+  let result = [#("0", #(1, 8)), #("0", #(2, 5)), #("0", #(3, 7)), #("0", #(4, 4)), #("A", #(5, 6)), #("A", #(8, 8)), #("A", #(9, 9))]
+
+  should.equal(parse, result)
+}
