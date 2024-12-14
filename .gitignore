@@ -2,3 +2,9 @@
 **/data.txt
 **/sample.txt
 **/build
+
+# OCaml
+**/_build
+**/.vscode
+**/dune-project
+**/*.opam
