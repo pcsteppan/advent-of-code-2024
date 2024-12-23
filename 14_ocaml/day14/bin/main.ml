@@ -108,3 +108,62 @@ let find_quadrant_totals quadrants =
 let solution = find_quadrant_totals quadrants |> List.fold_left ( * ) 1;;
 
 Printf.printf "%d\n" solution;;
+
+let total_guy_count = List.length guys;;
+
+let tree_region_start = (0,0);;
+let tree_region_end = (fst space / 2, snd space / 2);;
+
+let build_vec2_map_string map space i =
+  let width, height = space in
+  let buffer = Buffer.create 1024 in
+  let found = ref false in
+  for y = 0 to height - 1 do
+    let consecutive_count = ref 0 in
+    for x = 0 to width - 1 do
+      let count = match Vec2Map.find_opt (y, x) map with
+      | Some(v) -> v
+      | None -> 0 in
+      if count = 0 then 
+        consecutive_count := 0
+      else 
+        incr consecutive_count;
+      if !consecutive_count >= 6 then found := true;
+      if count = 0 then Buffer.add_char buffer ' ' else Buffer.add_string buffer (string_of_int count)
+    done;
+    Buffer.add_char buffer '\n';
+  done;
+  if not !found then "" else begin
+    Buffer.add_string buffer (string_of_int i);
+    Buffer.add_string buffer "\n##################################################################################################\n";
+    Buffer.contents buffer
+  end;;
+
+(* let middle_start = (fst space / 3, snd space / 3);;
+let middle_end = (2 * fst space / 3, 2 * snd space / 3);; *)
+(* iterate until 50% of guys are found in middle region *)
+
+let rec find_middle_region guys space i =
+  let future = apply_steps guys 1 |> (fun l -> wrap l space) in
+  let guy_space_index =
+    List.fold_left (fun acc guy ->
+      Vec2Map.update guy.pos increment_update acc) 
+      Vec2Map.empty future in
+  let res = build_vec2_map_string guy_space_index space i in
+  print_string res;
+  let total_in_middle = find_total_in_region guy_space_index tree_region_start tree_region_end in
+  if total_in_middle >= total_guy_count * 5 / 10 then future else find_middle_region future space (i+1);;
+
+let _final_state = find_middle_region guys space 0;;
+
+(* print_vec2_map guy_space_index space;; *)
+
+(* 2251 has interesting / weird noise *)
+(* 2231 has interesting / weird state *)
+(* 3962 *)
+(* 3935 *)
+
+(* 905 *)
+(* 872 *)
+
+(* 515 *)
