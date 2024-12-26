@@ -31,7 +31,6 @@ let _sample =
 <^^>>>vv<v>>v<<";;
 
 let parse_scene (input : string) : scene =
-  print_endline input;
   let blocks_and_walls: (obj*int*int) list = 
     input |> String.split_on_char '\n' 
     |> List.mapi (fun i row -> 
@@ -145,7 +144,7 @@ let parse_double_wide (input: string) : problem =
     let (row, col) = pos in
     let new_pos = (row, col * 2) in
     Scene.add new_pos obj acc
-  ) scene.scene scene.scene
+  ) scene.scene Scene.empty
   in
   let guy_in_wide_space_pos = let (row, col) = scene.guy_pos in (row, col * 2)
   in
@@ -167,8 +166,73 @@ let combine_option_lists (lists: 'a list option list) : 'a list option =
     | Some acc_list, Some lst -> Some (acc_list @ lst)
   ) (Some []) lists
 
+(* 
+  Because the guy can push a double-wide block, and that block can in turn push two double-wide blocks,
+  we have to query different positions in the map to see if the guy and blocks collide.
+
+  Here are the two cases of a guy and a block that would interact if the guy moved north:
+  1  2  ^
+  [] [] |  
+  @   @ |
+
+  Here are the three cases of how a block and a block would interact if the block was pushed north:
+  1   2   3  ^
+    [] [] []  |
+  []  []  [] |
+
+  And for the purpose of this program, we are only considering the left-most part of the block in the spatial map:
+  1  2  ^
+  O. O. |
+  @   @ |
+
+  1   2   3  ^
+    O. O. O.  |
+  O.  O.  O. |
+
+  So for NORTH and SOUTH, the guy has two offsets to check, and for the block we have three offsets to check.
+
+  For EAST and WEST, since the blocks and walls height did not change in part 2, we only have to check one offset.
+  However, we still have to account for the double-width of blocks and walls in the spatial map.
+
+  @[]  | @[][]##
+  []@  | ##[][]@
+
+  @O.  | @O.O.#. 
+  O.@  | #.O.O.@
+
+  The guy would collide if he moves east or west, so we can see that the west offset needs to skip an extra column to check for collisions.
+*)
+let get_queries (pos: (int*int)) (dir: dir) (isGuy: bool) : (int*int) list =
+  let (row, col) = pos in
+  match isGuy with
+  | true -> 
+    (
+      match dir with
+      | North -> [(row - 1, col); (row - 1, col - 1)]
+      | East -> [(row, col + 1)]
+      | South -> [(row + 1, col); (row + 1, col - 1)]
+      | West -> [(row, col - 2)]
+    )
+  | false ->
+    (
+      match dir with
+      | North -> [(row - 1, col - 1); (row - 1, col); (row - 1, col + 1)]
+      | East -> [(row, col + 2)]
+      | South -> [(row + 1, col - 1); (row + 1, col); (row + 1, col + 1)]
+      | West -> [(row, col - 2)]
+    )
+
+let map_kvps (scene: scene) (f: ((int*int) * obj) -> ((int*int) * obj)) : scene =
+  let new_scene = Scene.fold (fun pos obj acc -> 
+    let (key, value) = f (pos, obj)
+    in
+    Scene.add key value acc
+  ) scene.scene Scene.empty
+  in
+  { guy_pos = scene.guy_pos; scene = new_scene }
+
 let move2 (scene: scene) (dir: dir) : scene =
-  let rec aux scene new_pos dir : (int * int) list option =
+  let rec aux (scene: scene) new_pos dir : (int * int) list option =
     let lookup : obj option = Scene.find_opt new_pos scene.scene
     in
     match lookup with
@@ -177,12 +241,94 @@ let move2 (scene: scene) (dir: dir) : scene =
       match colliding_object with
       | Wall -> None
       | Block -> 
-        get_queries new_pos dir
+        get_queries new_pos dir false
         |> List.map (fun next_pos -> aux scene next_pos dir)
         |> combine_option_lists
+        |> Option.map (fun lst -> new_pos :: lst)
       | Guy -> failwith "Error: Other guy found in scene." 
   in
-  let new_pos = update_pos scene.guy_pos dir
+  let all_positions_to_move = get_queries scene.guy_pos dir true
+  |> List.map (fun next_pos -> aux scene next_pos dir)
+  |> combine_option_lists
   in
-  let all_positions_to_move = aux scene Guy new_pos dir
-  in 
+  match all_positions_to_move with
+  | None -> scene
+  | Some positions -> 
+    let new_scene = map_kvps scene (fun (pos, obj) -> 
+        if List.mem pos positions
+          then ((update_pos pos dir), obj)
+          else (pos, obj)
+    )
+    in 
+    { guy_pos = update_pos scene.guy_pos dir; scene = new_scene.scene };;
+
+let _print_scene (scene : scene) = 
+  let (max_row, max_col) = Scene.fold (fun (row, col) _ (max_row, max_col) -> 
+    (max row max_row, max col max_col)
+  ) scene.scene (0, 0)
+  in
+  for row = 0 to max_row do
+    for col = 0 to max_col+1 do
+      let obj = Scene.find_opt (row, col) scene.scene
+      in
+      let prev_object = Scene.find_opt (row, col-1) scene.scene
+      in
+      if scene.guy_pos = (row, col) then Printf.printf "@"
+      else match obj with
+      | None -> if prev_object = None then Printf.printf "."
+      | Some(Block) -> Printf.printf "[]"
+      | Some(Wall) -> Printf.printf "##"
+      | Some(Guy) -> ();
+    done;
+    Printf.printf "\n"
+  done;;
+    
+let _large_sample = 
+"##########
+#..O..O.O#
+#......O.#
+#.OO..O.O#
+#..O@..O.#
+#O#..O...#
+#O..O..O.#
+#.OO.O.OO#
+#....O...#
+##########
+
+<vv>^<v^>v>^vv^v>v<>v^v<v<^vv<<<^><<><>>v<vvv<>^v^>^<<<><<v<<<v^vv^v>^
+vvv<<^>^v^^><<>>><>^<<><^vv^^<>vvv<>><^^v>^>vv<>v<<<<v<^v>^<^^>>>^<v<v
+><>vv>v^v^<>><>>>><^^>vv>v<^^^>>v^v^<^^>v^^>v^<^v>v<>>v^v^<v>v^^<^^vv<
+<<v<^>>^^^^>>>v^<>vvv^><v<<<>^^^vv^<vvv>^>v<^^^^v<>^>vvvv><>>v^<<^^^^^
+^><^><>>><>^^<<^^v>>><^<v>^<vv>>v>>>^v><>^v><<<<v>>v<v<v>vvv>^<><<>^><
+^>><>^v<><^vvv<^^<><v<<<<<><^v<<<><<<^^<v<^^^><^>>^<v^><<<^>>^v<v^v<v^
+>^>>^v>vv>^<<^v<>><<><<v<<v><>v<^vv<<<>^^v^>^^>>><<^v>>v^v><^^>>^<>vv^
+<><^^>^^^<><vvvvv^v<v<<>^v<v>v<<^><<><<><<<^^<<<^<<>><<><^^^>^^<>^>v<>
+^^>vv<^v^v<vv>^<><v<^v>^^^>>>^^vvv^>vvv<>>>^<^>>>>>^<<^v>^vvv<>^<><<v>
+v^^>>><<^^<>>^v^<v^vv<>v^<<>^<^v^v><^<<<><<^<v><v<>vv>>v><v^<vv<>v^<<^"
+
+let _smaller_sample =
+"###
+#@#
+#O#
+#O#
+#.#
+###
+
+v"
+
+let _print_dir dir = 
+  match dir with
+  | North -> print_endline "North"
+  | East -> print_endline "East"
+  | South -> print_endline "South"
+  | West -> print_endline "West"
+
+let part2 (input: string) : int =
+  let problem = parse_double_wide input in
+  let solved_problem = List.fold_left move2 problem.scene problem.directions 
+  in
+  sum_blocks solved_problem.scene;;
+
+Printf.printf "%d\n" (part2 input);;
+
+
