@@ -1,22 +1,22 @@
-type dir = North | East | South | West;;
-type obj = Guy | Wall | Block;;
+type dir = North | East | South | West
+type obj = Guy | Wall | Block
 
 module PosOrd = struct
   type t = (int * int)
   let compare = compare
 end
 
-module Scene = Map.Make(PosOrd);;
+module Scene = Map.Make(PosOrd)
 
 type scene = {
   guy_pos: (int * int);
   scene: obj Scene.t
-};;
+}
 
 type problem = {
   scene: scene;
   directions: dir list
-};;
+}
 
 let _sample =
 "########
@@ -28,8 +28,10 @@ let _sample =
 #......#
 ########
 
-<^^>>>vv<v>>v<<";;
+<^^>>>vv<v>>v<<"
 
+(** Parse the scene from the input string, returning the initial guy position
+    and a map of objects. *)
 let parse_scene (input : string) : scene =
   let blocks_and_walls: (obj*int*int) list = 
     input |> String.split_on_char '\n' 
@@ -59,12 +61,13 @@ let parse_scene (input : string) : scene =
   in
   match guy_pos with
   | Some pos -> { guy_pos = pos; scene = scene }
-  | None -> failwith "Error: No guy found in scene.";;
+  | None -> failwith "Error: No guy found in scene."
 
 let split_on_string str delimiter =
   let re = Str.regexp_string delimiter in
   Str.split re str
 
+(** Parse the directions from the input string. *)
 let parse_directions (input : string) : dir list =
   input |> String.to_seq 
   |> List.of_seq 
@@ -75,13 +78,13 @@ let parse_directions (input : string) : dir list =
     | 'v' -> Some South
     | '<' -> Some West
     | _ -> None
-  );;
+  )
 
 let parse_problem (input : string) : problem =
   let parts = split_on_string input "\n\n" in
   let scene = parse_scene (List.nth parts 0) in
   let directions = parse_directions (List.nth parts 1) in
-  { scene = scene; directions = directions };;
+  { scene = scene; directions = directions }
 
 let add_pos (x, y) (dx, dy) =
   (x + dx, y + dy)
@@ -94,6 +97,7 @@ let update_pos pos dir =
   | West ->  ( 0, -1) in
   add_pos pos change
 
+(** Move function for part1. Returns the updated scene after applying a direction. *)
 let move scene dir: scene = 
   let rec aux (scene: scene) (o: obj) (new_pos: (int*int)) (dir: dir) : scene option = 
     let lookup : obj option = Scene.find_opt new_pos scene.scene
@@ -114,28 +118,30 @@ let move scene dir: scene =
   in
   let new_pos = update_pos scene.guy_pos dir
   in
-  aux scene Guy new_pos dir |> Option.value ~default:scene;;
+  aux scene Guy new_pos dir |> Option.value ~default:scene
 
 let get_all_blocks scene = Scene.fold (fun pos obj acc -> 
   match obj with
   | Block -> pos :: acc
   | _ -> acc
-) scene [];;
+) scene []
 
+(** Sum the positions of any Block in the scene. *)
 let sum_blocks scene = List.fold_left 
   (fun acc (row, col) -> acc + row*100 + col) 
-  0 (get_all_blocks scene);;
+  0 (get_all_blocks scene)
 
+(** Part1 solution. *)
 let part1 (input : string) : int =
   let problem = parse_problem input in
   let solved_problem = List.fold_left 
     (fun scene dir -> move scene dir) 
     problem.scene problem.directions 
   in
-  sum_blocks solved_problem.scene;;
+  sum_blocks solved_problem.scene
 
 let input = Day15.Input.file_contents;;
-Printf.printf "%d\n" (part1 input);;
+Printf.printf "%d\n" (part1 input)
 
 let parse_double_wide (input: string) : problem =
   let parts = split_on_string input "\n\n" in
@@ -156,8 +162,9 @@ let parse_double_wide (input: string) : problem =
       scene = double_wide_scene 
     }; 
     directions = directions 
-  };;
+  }
 
+(** Combine two lists inside an option context. If any inputs are 'None', then 'None' is returned. *)
 let combine_option_lists (lists: 'a list option list) : 'a list option =
   let open Option in
   List.fold_left (fun acc opt_list ->
@@ -231,6 +238,7 @@ let map_kvps (scene: scene) (f: ((int*int) * obj) -> ((int*int) * obj)) : scene 
   in
   { guy_pos = scene.guy_pos; scene = new_scene }
 
+(** Move function for part2 handling double-wide blocks. *)
 let move2 (scene: scene) (dir: dir) : scene =
   let rec aux (scene: scene) new_pos dir : (int * int) list option =
     let lookup : obj option = Scene.find_opt new_pos scene.scene
@@ -260,7 +268,7 @@ let move2 (scene: scene) (dir: dir) : scene =
           else (pos, obj)
     )
     in 
-    { guy_pos = update_pos scene.guy_pos dir; scene = new_scene.scene };;
+    { guy_pos = update_pos scene.guy_pos dir; scene = new_scene.scene }
 
 let _print_scene (scene : scene) = 
   let (max_row, max_col) = Scene.fold (fun (row, col) _ (max_row, max_col) -> 
@@ -278,10 +286,10 @@ let _print_scene (scene : scene) =
       | None -> if prev_object = None then Printf.printf "."
       | Some(Block) -> Printf.printf "[]"
       | Some(Wall) -> Printf.printf "##"
-      | Some(Guy) -> ();
+      | Some(Guy) -> ()
     done;
     Printf.printf "\n"
-  done;;
+  done
     
 let _large_sample = 
 "##########
@@ -323,12 +331,13 @@ let _print_dir dir =
   | South -> print_endline "South"
   | West -> print_endline "West"
 
+(** Part2 solution. *)
 let part2 (input: string) : int =
   let problem = parse_double_wide input in
   let solved_problem = List.fold_left move2 problem.scene problem.directions 
   in
   sum_blocks solved_problem.scene;;
 
-Printf.printf "%d\n" (part2 input);;
+Printf.printf "%d\n" (part2 input)
 
 
