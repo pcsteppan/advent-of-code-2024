@@ -137,3 +137,52 @@ let part1 (input : string) : int =
 
 let input = Day15.Input.file_contents;;
 Printf.printf "%d\n" (part1 input);;
+
+let parse_double_wide (input: string) : problem =
+  let parts = split_on_string input "\n\n" in
+  let scene = parse_scene (List.nth parts 0) in
+  let double_wide_scene = Scene.fold (fun pos obj acc -> 
+    let (row, col) = pos in
+    let new_pos = (row, col * 2) in
+    Scene.add new_pos obj acc
+  ) scene.scene scene.scene
+  in
+  let guy_in_wide_space_pos = let (row, col) = scene.guy_pos in (row, col * 2)
+  in
+  let directions = parse_directions (List.nth parts 1)
+  in
+  { 
+    scene = { 
+      guy_pos = guy_in_wide_space_pos; 
+      scene = double_wide_scene 
+    }; 
+    directions = directions 
+  };;
+
+let combine_option_lists (lists: 'a list option list) : 'a list option =
+  let open Option in
+  List.fold_left (fun acc opt_list ->
+    match acc, opt_list with
+    | None, _ | _, None -> None
+    | Some acc_list, Some lst -> Some (acc_list @ lst)
+  ) (Some []) lists
+
+let move2 (scene: scene) (dir: dir) : scene =
+  let rec aux scene new_pos dir : (int * int) list option =
+    let lookup : obj option = Scene.find_opt new_pos scene.scene
+    in
+    match lookup with
+    | None -> Some([])
+    | Some(colliding_object) -> 
+      match colliding_object with
+      | Wall -> None
+      | Block -> 
+        get_queries new_pos dir
+        |> List.map (fun next_pos -> aux scene next_pos dir)
+        |> combine_option_lists
+      | Guy -> failwith "Error: Other guy found in scene." 
+  in
+  let new_pos = update_pos scene.guy_pos dir
+  in
+  let all_positions_to_move = aux scene Guy new_pos dir
+  in 
