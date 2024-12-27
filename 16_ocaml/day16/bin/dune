@@ -1,0 +1,5 @@
+(executable
+ (public_name day16)
+ (name main)
+ (libraries day16)
+ (flags (:standard -w -32)))
