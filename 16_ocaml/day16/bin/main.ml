@@ -165,7 +165,7 @@ module Graph = struct
     let trace = ref empty in
     let pq = ref PQ.(empty |> enqueue (0, start)) in
     let total_cost = ref 0 in
-    while not (!pq = PQ.empty) do
+    while !pq <> PQ.empty do
       let curr = PQ.peek !pq |> Option.get in
       pq := PQ.dequeue !pq;
       let (curr_cost, curr_node) = curr in
