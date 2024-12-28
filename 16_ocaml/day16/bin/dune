@@ -2,4 +2,4 @@
  (public_name day16)
  (name main)
  (libraries day16)
- (flags (:standard -w -32)))
+ (flags (:standard -w -32-34-69)))
