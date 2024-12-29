@@ -252,7 +252,7 @@ let _sample =
    ###############"
 
 let input = Day16.Input.file_contents
-let g, start, goal = Graph.parse _sample
+let g, start, goal = Graph.parse input
 let min_dist, trace = Graph.dijkstra start goal g
 let count = Graph.collect_all_from_end_to_start !trace start goal |> List.length
 ;;
