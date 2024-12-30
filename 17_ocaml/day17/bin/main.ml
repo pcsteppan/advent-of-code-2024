@@ -1,5 +1,6 @@
-let rec pow a b =
-  match b with | 0 -> 1 | 1 -> a | _ -> a * pow a (b - 1)
+let ( <<< ) a b = Int.shift_left a b
+let ( >>> ) a b = Int.shift_right a b
+let ( & ) a b = a land b
 
 module Computer = struct
   type 'a computer = {
@@ -12,74 +13,91 @@ module Computer = struct
   }
 
   let empty = { a = 0; b = 0; c = 0; ip = 0; program = []; output = [] }
-  
-  let print c =
-    Printf.printf "A: %d, B: %d, C: %d, IP: %d, Program: [%s], Output: [%s]\n"
-      c.a c.b c.c c.ip
-      (String.concat ";" (List.map string_of_int c.program))
-      (String.concat ";" (List.map string_of_int (List.rev c.output)))
 
-  let combo_operand o c =
-    match o with
-    | 0 | 1 | 2 | 3 -> o
+  let _print c =
+    Printf.printf "A: %d, B: %d, C: %d, IP: %d\nProgram:\t%s\nOutput:\t\t%s\n"
+      c.a c.b c.c c.ip
+      (String.concat " " (List.map string_of_int c.program))
+      (String.concat " " (List.map string_of_int c.output))
+
+  let special_arg arg c =
+    match arg with
+    | 0 | 1 | 2 | 3 -> arg
     | 4 -> c.a
     | 5 -> c.b
     | 6 -> c.c
-    | _ -> failwith ("Unexpected operand: " ^ Int.to_string o)
-  
-  let adv operand c = let quotient = c.a / (pow 2 operand) in {c with a = quotient}
-  let bdv operand c = let quotient = c.a / (pow 2 operand) in {c with b = quotient}
-  let cdv operand c = let quotient = c.a / (pow 2 operand) in {c with c = quotient}
-  
-  let bxl operand c = let b_xor = c.b lxor operand in {c with b = b_xor}
-  let bst operand c = let b' = operand mod 8 in {c with b = b'}
-  let jnz operand c = if c.a = 0 then c else {c with ip = operand - 2; }
-  let bxc _operand c = let b' = c.b lxor c.c in {c with b = b'}
-  
-  let out operand c = let out_val = operand mod 8 in {c with output = out_val :: c.output}
+    | _ -> failwith ("Unexpected arg: " ^ Int.to_string arg)
 
-  let exec opcode operand c =
-    let combo = combo_operand operand c in 
+  let adv arg c = { c with a = c.a >>> arg }
+  let bdv arg c = { c with b = c.a >>> arg }
+  let cdv arg c = { c with c = c.a >>> arg }
+  let bxl arg c = { c with b = c.b lxor arg }
+  let bst arg c = { c with b = arg & 7 }
+  let jnz arg c = if c.a = 0 then c else { c with ip = arg - 2 }
+  let bxc _arg c = { c with b = c.b lxor c.c }
+  let out arg c = { c with output = (arg & 7) :: c.output }
+
+  let exec opcode arg c =
     match opcode with
-    | 0 -> adv combo c
-    | 1 -> bxl operand c
-    | 2 -> bst combo c
-    | 3 -> jnz operand c
-    | 4 -> bxc operand c
-    | 5 -> out combo c
-    | 6 -> bdv combo c
-    | 7 -> cdv combo c
-    | _ -> failwith ("Unexpected opcode: " ^ Int.to_string opcode)
+    | 1 -> bxl arg c
+    | 3 -> jnz arg c
+    | 4 -> bxc arg c
+    | _ -> (
+        let s_arg = special_arg arg c in
+        match opcode with
+        | 0 -> adv s_arg c
+        | 2 -> bst s_arg c
+        | 5 -> out s_arg c
+        | 6 -> bdv s_arg c
+        | 7 -> cdv s_arg c
+        | _ -> failwith ("Unexpected opcode: " ^ Int.to_string opcode))
 
   let cycle c =
     let operator = List.nth c.program c.ip in
-    let operand = List.nth c.program (c.ip + 1) in
-    (* Printf.printf "executing %d %d\n" operator operand; *)
-    let c' = exec operator operand c in
-    (* print c; *)
-    {c' with ip = c'.ip + 2}
-    
-  let rec run c =
-    if c.ip >= List.length c.program 
-      then {c with output = List.rev c.output} 
-      else run (cycle c)
+    let arg = List.nth c.program (c.ip + 1) in
+    let c' = exec operator arg c in
+    { c' with ip = c'.ip + 2 }
 
-  let rec find_quine c =
-    let c_complete = run c in
-    Printf.printf "%d\r" c.a;
-    if c.program = c_complete.output then c.a
-    else find_quine ({empty with a = c.a + 1; program = c.program})
+  let rec run c =
+    if c.ip >= List.length c.program then { c with output = List.rev c.output }
+    else run (cycle c)
+
+  let find_quine c =
+    let rec aux c a i =
+      let c' = { empty with a; program = c.program } in
+      let result = run c' in
+      if result.output = c.program then Some a
+      else if i > List.length c.program then None
+      else
+        let slice =
+          List.filteri (fun idx _ -> idx >= List.length c.program - i) c.program
+        in
+        if i = 0 || result.output = slice then
+          List.fold_left
+            (fun acc x ->
+              match acc with
+              | Some _ -> acc
+              | None -> aux c ((a <<< 3) + x) (i + 1))
+            None
+            (List.init 8 (fun x -> x))
+        else None
+    in
+    aux c 0 0
 end
 
-let problem = { Computer.empty with a = 21539243; program = [2;4;1;3;7;5;1;5;0;3;4;1;5;5;3;0]; }
-let finished = Computer.run problem;;
+let _sample = { Computer.empty with program = [ 0; 3; 5; 4; 3; 0 ] }
 
-Computer.print finished;;
+let problem =
+  {
+    Computer.empty with
+    a = 21539243;
+    program = [ 2; 4; 1; 3; 7; 5; 1; 5; 0; 3; 4; 1; 5; 5; 3; 0 ];
+  }
+;;
 
-let output_string = String.concat "," (List.map string_of_int finished.output) in 
-Printf.printf "Output: %s\n" output_string;;
+print_endline "Part 1: ";
+(Computer.run problem).output |> List.iter (fun x -> Printf.printf "%d," x);
 
-let problem2 = { problem with a = 66559430; };;
-let finished2 = Computer.find_quine problem2;;
-
-print_endline @@ string_of_int finished2;;
+print_endline "\n\nPart 2: ";
+Computer.find_quine problem
+|> Option.map Int.to_string |> Option.get |> print_endline
