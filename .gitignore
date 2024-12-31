@@ -6,5 +6,3 @@
 # OCaml
 **/_build
 **/.vscode
-**/dune-project
-**/*.opam
