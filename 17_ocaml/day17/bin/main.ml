@@ -69,9 +69,8 @@ module Computer = struct
       if result.output = c.program then Some a
       else if i > List.length c.program then None
       else
-        let slice =
-          List.filteri (fun idx _ -> idx >= List.length c.program - i) c.program
-        in
+        let start = List.length c.program - i in
+        let slice = List.filteri (fun idx _ -> idx >= start) c.program in
         if i = 0 || result.output = slice then
           List.fold_left
             (fun acc x ->
